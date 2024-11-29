@@ -83,28 +83,26 @@ try {
         Exit
     }
 
-    # Debugging: List globally installed npm packages
-    Send-DiscordMessage "Checking globally installed npm packages..."
-    $globalPackages = npm list -g --depth=0
-    Send-DiscordMessage "Global npm packages: $globalPackages"
+    # Check for binary location manually
+    Send-DiscordMessage "Checking if Localtunnel binary exists..."
 
-    # Get npm global bin path
-    $npmBinPath = npm bin -g
-    Send-DiscordMessage "npm global bin path: $npmBinPath"
+    # Let's find where npm installs global binaries
+    $npmGlobalBin = npm bin -g
+    Send-DiscordMessage "npm global bin path: $npmGlobalBin"
 
-    # Verify Localtunnel installation path
-    $ltPath = Join-Path $npmBinPath "lt"
-    Send-DiscordMessage "Checking for Localtunnel in path: $ltPath"
-    
+    $ltPath = Join-Path $npmGlobalBin "lt"
+    Send-DiscordMessage "Looking for Localtunnel binary at: $ltPath"
+
+    # If Localtunnel binary doesn't exist, let's confirm
     if (-not (Test-Path $ltPath)) {
-        Send-DiscordMessage "Localtunnel binary not found in npm bin path."
+        Send-DiscordMessage "Localtunnel binary not found at $ltPath. Please check your npm installation."
         Exit
     } else {
-        Send-DiscordMessage "Localtunnel binary found at path: $ltPath"
+        Send-DiscordMessage "Localtunnel binary found at $ltPath"
     }
 
-    # Start Localtunnel tunnel for SSH
-    Send-DiscordMessage "Setting up SSH tunnel using Localtunnel..."
+    # Now let's run the tunnel and capture output
+    Send-DiscordMessage "Starting Localtunnel to forward SSH..."
     $TunnelProcess = Start-Process -FilePath $ltPath -ArgumentList "--port 22" -PassThru
     $TunnelProcess.WaitForExit()
 

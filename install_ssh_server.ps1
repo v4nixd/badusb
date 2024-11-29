@@ -88,22 +88,17 @@ try {
     $globalPackages = npm list -g --depth=0
     Send-DiscordMessage "Global npm packages: $globalPackages"
 
-    # Verify Localtunnel installation path
-    $ltPath = (Get-Command lt -ErrorAction SilentlyContinue).Source
-    if (-not $ltPath) {
-        # Try to find where localtunnel was installed
-        Send-DiscordMessage "Localtunnel not found in default path. Checking npm global bin path..."
-        $npmBinPath = npm bin -g
-        Send-DiscordMessage "npm global bin path: $npmBinPath"
+    # Get npm global bin path
+    $npmBinPath = npm bin -g
+    Send-DiscordMessage "npm global bin path: $npmBinPath"
 
-        # Check if Localtunnel exists in the npm bin path
-        $ltPath = Join-Path $npmBinPath "lt"
-        Send-DiscordMessage "Checking for Localtunnel in path: $ltPath"
-        
-        if (-not (Test-Path $ltPath)) {
-            Send-DiscordMessage "Localtunnel binary not found after installation. Please check npm install."
-            Exit
-        }
+    # Verify Localtunnel installation path
+    $ltPath = Join-Path $npmBinPath "lt"
+    Send-DiscordMessage "Checking for Localtunnel in path: $ltPath"
+    
+    if (-not (Test-Path $ltPath)) {
+        Send-DiscordMessage "Localtunnel binary not found in npm bin path."
+        Exit
     } else {
         Send-DiscordMessage "Localtunnel binary found at path: $ltPath"
     }

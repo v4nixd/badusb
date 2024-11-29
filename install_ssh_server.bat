@@ -6,22 +6,24 @@ try {
 
     # Функция отправки сообщения в Discord
     function Send-DiscordMessage($MessageContent) {
-        $Message = @{
-            content = $MessageContent
-        }
-
-        # Проверка, что сообщение не пустое
-        if (-not $Message.content) {
-            Write-Host "Ошибка: сообщение пустое!"
-            return
-        }
-
-        try {
-            Invoke-RestMethod -Uri $WebhookURL -Method Post -Body (ConvertTo-Json $Message -Depth 10) -ContentType 'application/json'
-        } catch {
-            Write-Host "Не удалось отправить сообщение в Discord: $($Error[0])" -ForegroundColor Red
-        }
+    # Проверка, что сообщение не пустое
+    if (-not $MessageContent) {
+        Write-Host "Ошибка: сообщение пустое!"
+        return
     }
+
+    $Message = @{
+        content = $MessageContent
+    }
+
+    try {
+        Write-Host "Отправка сообщения в Discord: $MessageContent"  # Отладочное сообщение
+        Invoke-RestMethod -Uri $WebhookURL -Method Post -Body (ConvertTo-Json $Message -Depth 10) -ContentType 'application/json'
+    } catch {
+        Write-Host "Не удалось отправить сообщение в Discord: $($Error[0])" -ForegroundColor Red
+    }
+}
+
 
     # Отправляем стартовое сообщение
     Send-DiscordMessage "🚀 Начало установки OpenSSH Server..."

@@ -83,18 +83,23 @@ try {
         Exit
     }
 
-    # Verify Localtunnel installation
+    # Verify Localtunnel installation path
     $ltPath = (Get-Command lt -ErrorAction SilentlyContinue).Source
     if (-not $ltPath) {
-        Send-DiscordMessage "Localtunnel binary not found after installation. Please check npm install."
-        Exit
+        # Try to find where localtunnel was installed
+        $ltPath = (Get-Command npm -ErrorAction SilentlyContinue).Source | ForEach-Object { $_.Replace("npm.cmd", "lt.cmd") }
+        Send-DiscordMessage "Trying to locate localtunnel at: $ltPath"
+        if (-not (Test-Path $ltPath)) {
+            Send-DiscordMessage "Localtunnel binary not found after installation. Please check npm install."
+            Exit
+        }
     } else {
         Send-DiscordMessage "Localtunnel binary found at path: $ltPath"
     }
 
     # Start Localtunnel tunnel for SSH
     Send-DiscordMessage "Setting up SSH tunnel using Localtunnel..."
-    $TunnelProcess = Start-Process -FilePath "lt" -ArgumentList "--port 22" -PassThru
+    $TunnelProcess = Start-Process -FilePath $ltPath -ArgumentList "--port 22" -PassThru
     $TunnelProcess.WaitForExit()
 
     # Capture the public URL from Localtunnel

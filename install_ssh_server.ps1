@@ -88,12 +88,7 @@ try {
     # Enter your ngrok authtoken here (with your actual token)
     $NgrokAuthToken = "2WU1ah9rzwH5TgeVVhhajS9IqM3_4mALPaeeqrwccVETjceEb"
 
-    # Configure ngrok with authtoken using config command
-    Send-DiscordMessage "Configuring ngrok with authtoken..."
-    Start-Process -FilePath $NgrokPath -ArgumentList "config", "add-authtoken", $NgrokAuthToken -NoNewWindow -Wait
-    Send-DiscordMessage "ngrok configured successfully."
-
-    # Set up SSH tunnel using ngrok
+    # Start ngrok tunnel
     Send-DiscordMessage "Setting up SSH tunnel using ngrok..."
     $TunnelProcess = Start-Process -FilePath $NgrokPath -ArgumentList "tcp", "22" -PassThru
     $TunnelProcess.WaitForExit()

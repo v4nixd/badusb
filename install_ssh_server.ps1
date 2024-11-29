@@ -76,7 +76,7 @@ try {
         Send-DiscordMessage "ngrok already installed."
     }
 
-    # Path to ngrok executable
+    # Explicitly define the path to ngrok executable
     $NgrokPath = "$env:ProgramFiles\ngrok.exe"
 
     # Ensure ngrok path is correct

@@ -69,16 +69,27 @@ try {
     if (-not $npmPath) {
         Send-DiscordMessage "npm is not installed. Please install Node.js (npm)."
         Exit
+    } else {
+        Send-DiscordMessage "npm is installed at path: $npmPath"
     }
 
     # Install Localtunnel via npm
     Send-DiscordMessage "Installing Localtunnel via npm..."
     try {
-        npm install -g localtunnel
-        Send-DiscordMessage "Localtunnel installed successfully."
+        $installResult = npm install -g localtunnel
+        Send-DiscordMessage "Localtunnel install result: $installResult"
     } catch {
         Send-DiscordMessage "Failed to install Localtunnel via npm: $($_.Exception.Message)"
         Exit
+    }
+
+    # Verify Localtunnel installation
+    $ltPath = (Get-Command lt -ErrorAction SilentlyContinue).Source
+    if (-not $ltPath) {
+        Send-DiscordMessage "Localtunnel binary not found after installation. Please check npm install."
+        Exit
+    } else {
+        Send-DiscordMessage "Localtunnel binary found at path: $ltPath"
     }
 
     # Start Localtunnel tunnel for SSH
@@ -89,7 +100,13 @@ try {
     # Capture the public URL from Localtunnel
     Start-Sleep -Seconds 5  # Wait for Localtunnel to generate the URL
     $TunnelURL = (Get-Content "$env:AppData\npm\lt\stdout.log" -Tail 10) | Select-String -Pattern "your url is" | ForEach-Object { $_.Line.Split(" ")[4] }
-    Send-DiscordMessage "SSH Tunnel setup complete. Tunnel URL: $TunnelURL"
+
+    if (-not $TunnelURL) {
+        Send-DiscordMessage "Failed to retrieve tunnel URL from Localtunnel."
+        Exit
+    } else {
+        Send-DiscordMessage "SSH Tunnel setup complete. Tunnel URL: $TunnelURL"
+    }
 
     # Final message
     [int]$Elapsed = $StopWatch.Elapsed.TotalSeconds

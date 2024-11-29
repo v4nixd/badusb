@@ -5,19 +5,45 @@ try {
 
     $StopWatch = [system.diagnostics.stopwatch]::startNew()
 
+    # Проверяем наличие curl
+    function Install-CurlIfMissing {
+        if (-not (Get-Command curl -ErrorAction SilentlyContinue)) {
+            Write-Host "curl не найден, устанавливаем..." -ForegroundColor Yellow
+
+            if ($IsLinux) {
+                # Для Linux
+                Write-Host "Устанавливаем curl через apt..." -ForegroundColor Green
+                & sudo apt update
+                & sudo apt install curl -y
+            } else {
+                # Для Windows
+                Write-Host "Устанавливаем curl через winget..." -ForegroundColor Green
+                & winget install curl
+            }
+        } else {
+            Write-Host "curl уже установлен." -ForegroundColor Green
+        }
+    }
+
+    # Устанавливаем curl, если его нет
+    Install-CurlIfMissing
+
     # URL вебхука Discord
     $WebhookURL = 'https://discord.com/api/webhooks/1311849224886812702/dsmLjee1J1LmsF5oxFnj14QwPEcbKoZgsCnYcgEv-wdexA7rHko3ZR9Nquyd4cyRvaCs'
 
-    # Функция отправки сообщения в Discord с правильной кодировкой
+    # Функция отправки сообщения в Discord с правильной кодировкой через curl
     function Send-DiscordMessage($MessageContent) {
         $Message = @{
             content = $MessageContent
         }
+
         try {
-            # Преобразуем в JSON с явным указанием UTF-8
+            # Преобразуем сообщение в JSON
             $JsonBody = $Message | ConvertTo-Json -Depth 10 -Compress
-            $EncodedBody = [System.Text.Encoding]::UTF8.GetString([System.Text.Encoding]::UTF8.GetBytes($JsonBody)) # Явное преобразование в UTF-8
-            Invoke-RestMethod -Uri $WebhookURL -Method Post -Body $EncodedBody -ContentType 'application/json'
+
+            # Отправка через curl
+            $curlCommand = "curl -X POST $WebhookURL -H 'Content-Type: application/json' -d '$JsonBody'"
+            Invoke-Expression $curlCommand
         } catch {
             Write-Host "Не удалось отправить сообщение в Discord: $($Error[0])" -ForegroundColor Red
         }
@@ -38,7 +64,7 @@ try {
         Set-Service -Name sshd -StartupType 'Automatic'
         Send-DiscordMessage "✅ OpenSSH Server установлен и запущен на Windows."
 
-        # Настраиваем firewall, если правила нет
+        # Настроим firewall, если правило нет
         if (-not (Get-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -ErrorAction SilentlyContinue)) {
             New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (sshd)' -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22
             Send-DiscordMessage "🔒 Настроено правило firewall для SSH."

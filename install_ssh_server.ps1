@@ -1,21 +1,23 @@
 try {
-    # Принудительно устанавливаем кодировку консоли и процессов
-    [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-    $PSDefaultParameterValues['ConvertTo-Json:Depth'] = 10
+    # Устанавливаем кодировку консоли и процесса на UTF-8
+    $OutputEncoding = [System.Text.Encoding]::UTF8
+    [Console]::OutputEncoding = $OutputEncoding
 
     $StopWatch = [system.diagnostics.stopwatch]::startNew()
 
     # URL вебхука Discord
     $WebhookURL = 'https://discord.com/api/webhooks/1311849224886812702/dsmLjee1J1LmsF5oxFnj14QwPEcbKoZgsCnYcgEv-wdexA7rHko3ZR9Nquyd4cyRvaCs'
 
-    # Функция отправки сообщения в Discord
+    # Функция отправки сообщения в Discord с правильной кодировкой
     function Send-DiscordMessage($MessageContent) {
         $Message = @{
             content = $MessageContent
         }
         try {
+            # Преобразуем в JSON с явным указанием UTF-8
             $JsonBody = $Message | ConvertTo-Json -Depth 10 -Compress
-            Invoke-RestMethod -Uri $WebhookURL -Method Post -Body $JsonBody -ContentType 'application/json'
+            $EncodedBody = [System.Text.Encoding]::UTF8.GetString([System.Text.Encoding]::UTF8.GetBytes($JsonBody)) # Явное преобразование в UTF-8
+            Invoke-RestMethod -Uri $WebhookURL -Method Post -Body $EncodedBody -ContentType 'application/json'
         } catch {
             Write-Host "Не удалось отправить сообщение в Discord: $($Error[0])" -ForegroundColor Red
         }

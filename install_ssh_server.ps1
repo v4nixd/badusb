@@ -46,4 +46,7 @@ try {
 } catch {
     "⚠️ Ошибка в строке $($_.InvocationInfo.ScriptLineNumber): $($Error[0])"
     exit 1
+} finally {
+    Write-Host "Нажмите любую клавишу для выхода..." -ForegroundColor Yellow
+    Pause
 }

@@ -76,17 +76,26 @@ try {
         Send-DiscordMessage "ngrok already installed."
     }
 
+    # Path to ngrok executable
+    $NgrokPath = "$env:ProgramFiles\ngrok.exe"
+
+    # Ensure ngrok path is correct
+    if (-not (Test-Path $NgrokPath)) {
+        Send-DiscordMessage "ngrok executable not found at $NgrokPath. Exiting."
+        throw "ngrok executable not found."
+    }
+
     # Enter your ngrok authtoken here (with your actual token)
     $NgrokAuthToken = "2WU1ah9rzwH5TgeVVhhajS9IqM3_4mALPaeeqrwccVETjceEb"
 
     # Configure ngrok with authtoken
     Send-DiscordMessage "Configuring ngrok with authtoken..."
-    Start-Process -FilePath "$env:ProgramFiles\ngrok.exe" -ArgumentList "authtoken", $NgrokAuthToken -NoNewWindow -Wait
+    Start-Process -FilePath $NgrokPath -ArgumentList "authtoken", $NgrokAuthToken -NoNewWindow -Wait
     Send-DiscordMessage "ngrok configured successfully."
 
     # Set up SSH tunnel using ngrok
     Send-DiscordMessage "Setting up SSH tunnel using ngrok..."
-    $TunnelProcess = Start-Process -FilePath "$env:ProgramFiles\ngrok.exe" -ArgumentList "tcp", "22" -PassThru
+    $TunnelProcess = Start-Process -FilePath $NgrokPath -ArgumentList "tcp", "22" -PassThru
     $TunnelProcess.WaitForExit()
 
     # Capture the public URL from ngrok (output of the command)

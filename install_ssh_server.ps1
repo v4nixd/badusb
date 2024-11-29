@@ -1,5 +1,3 @@
-#Requires -RunAsAdministrator
-
 try {
     $StopWatch = [system.diagnostics.stopwatch]::startNew()
 
@@ -42,10 +40,8 @@ try {
 
     [int]$Elapsed = $StopWatch.Elapsed.TotalSeconds
     "✅ Установка завершена за $Elapsed сек."
-    exit 0
 } catch {
-    "⚠️ Ошибка в строке $($_.InvocationInfo.ScriptLineNumber): $($Error[0])"
-    exit 1
+    Write-Host "⚠️ Ошибка в строке $($_.InvocationInfo.ScriptLineNumber): $($Error[0])" -ForegroundColor Red
 } finally {
     Write-Host "Нажмите любую клавишу для выхода..." -ForegroundColor Yellow
     Pause

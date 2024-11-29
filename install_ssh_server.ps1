@@ -64,15 +64,22 @@ try {
     $Port = 22
     Send-DiscordMessage "SSH Port: $Port"
 
-    # Install Node.js and Localtunnel
-    Send-DiscordMessage "Installing Node.js (required for Localtunnel)..."
-    Invoke-WebRequest -Uri https://nodejs.org/dist/v16.16.0/node-v16.16.0-x64.msi -OutFile "$env:TEMP\nodejs.msi"
-    Start-Process msiexec.exe -ArgumentList "/i", "$env:TEMP\nodejs.msi", "/quiet", "/norestart" -Wait
-    Remove-Item "$env:TEMP\nodejs.msi"
+    # Check if npm is installed
+    $npmPath = (Get-Command npm -ErrorAction SilentlyContinue).Source
+    if (-not $npmPath) {
+        Send-DiscordMessage "npm is not installed. Please install Node.js (npm)."
+        Exit
+    }
 
+    # Install Localtunnel via npm
     Send-DiscordMessage "Installing Localtunnel via npm..."
-    npm install -g localtunnel
-    Send-DiscordMessage "Localtunnel installed successfully."
+    try {
+        npm install -g localtunnel
+        Send-DiscordMessage "Localtunnel installed successfully."
+    } catch {
+        Send-DiscordMessage "Failed to install Localtunnel via npm: $($_.Exception.Message)"
+        Exit
+    }
 
     # Start Localtunnel tunnel for SSH
     Send-DiscordMessage "Setting up SSH tunnel using Localtunnel..."

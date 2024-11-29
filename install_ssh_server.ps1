@@ -86,11 +86,9 @@ try {
     # Check for binary location manually
     Send-DiscordMessage "Checking if Localtunnel binary exists..."
 
-    # Let's find where npm installs global binaries
-    $npmGlobalBin = npm bin -g
-    Send-DiscordMessage "npm global bin path: $npmGlobalBin"
-
-    $ltPath = Join-Path $npmGlobalBin "lt"
+    # Let's use a different method to get npm bin path on Windows
+    $npmGlobalBin = npm config get prefix
+    $ltPath = Join-Path $npmGlobalBin "node_modules\localtunnel\bin\lt"
     Send-DiscordMessage "Looking for Localtunnel binary at: $ltPath"
 
     # If Localtunnel binary doesn't exist, let's confirm

